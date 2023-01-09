@@ -190,7 +190,7 @@ class HorseResults:
                     df = pd.read_html(url)[4]
                 df.index = [horse_id] * len(df)
                 horse_results[horse_id] = df
-                time.sleep(0.5)
+                time.sleep(1)
             except IndexError:
                 continue
             except Exception as e:
@@ -352,7 +352,7 @@ class Return:
 
                 df.index = [race_id] * len(df)
                 return_tables[race_id] = df
-                time.sleep(0.5)
+                time.sleep(1)
             except IndexError:
                 continue
             except Exception as e:
@@ -978,7 +978,7 @@ class Results(DataProcessor):
         #race_idをkeyにしてDataFrame型を格納
         race_results = {}
         for race_id in tqdm(race_id_list):
-            time.sleep(0.5)
+            time.sleep(1)
             try:
                 url = "https://db.netkeiba.com/race/" + race_id
                 #メインとなるテーブルデータを取得
@@ -1120,7 +1120,7 @@ class Peds:
                 ped = pd.concat([generations[i] for i in range(5)]).rename(horse_id)
 
                 peds_dict[horse_id] = ped.reset_index(drop=True)
-                time.sleep(0.5)
+                time.sleep(1)
             except IndexError:
                 continue
             except Exception as e:
@@ -1214,7 +1214,7 @@ class Simulater():
                 df = pd.concat([dfs[1], dfs[2]])
                 df.index = [race_id] * len(df)
                 return_tables[race_id] = df
-                time.sleep(0.5)
+                time.sleep(1)
             except IndexError:
                 continue
             except Exception as e:
@@ -1770,7 +1770,7 @@ class Simulater():
                 df = pd.concat([dfs[1], dfs[2]])
                 df.index = [race_id] * len(df)
                 return_tables[race_id] = df
-                time.sleep(0.5)
+                time.sleep(1)
             except IndexError:
                 continue
             except Exception as e:
