@@ -277,7 +277,7 @@ class HorseResults:
                 sort_values('date', ascending=False).groupby(level=0).head(n_samples)
         else:
             raise Exception('n_samples must be >0')
-          
+
         self.average_dict = {}
         self.average_dict['non_category'] = filtered_df.groupby(level=0)[self.target_list]\
             .mean().add_suffix('_{}R'.format(n_samples))
@@ -290,8 +290,12 @@ class HorseResults:
         df = results[results['date']==date]
         horse_id_list = df['horse_id']
         self.average(horse_id_list, date, n_samples)
-        merged_df = df.merge(self.average_dict['non_category'], left_on='horse_id',
-                             right_index=True, how='left')
+        merged_df = df.merge(
+            self.average_dict['non_category'],
+            left_on='horse_id',
+            right_index=True, 
+            how='left'
+            )
         for column in ['course_len','race_type', '開催']:
             merged_df = merged_df.merge(self.average_dict[column], 
                                         left_on=['horse_id', column],
@@ -428,7 +432,8 @@ class Return:
         return_ = renpuku[2].rename('return')
         df = pd.concat([wins, return_], axis=1) 
         return df.apply(lambda x: pd.to_numeric(x, errors='coerce'))
-    
+
+
 class ModelEvaluator:
 
     
@@ -506,7 +511,7 @@ class ModelEvaluator:
         if kind == 'wide':
             rt_1R = self.wide.loc[race_id]
             return_ = (rt_1R[['win_0', 'win_1']].\
-                           apply(lambda x: set(x)==set(umaban), axis=1)) \
+                        apply(lambda x: set(x)==set(umaban), axis=1)) \
                 * rt_1R['return']/100 * amount
             return_ = return_.sum()
         if kind == 'sanrentan':
