@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 import re
 SLEEP_TIME = 5 # サーバに負担をかけないよう, SLEEP _TIME だけ待つ
 
-def scrape_horse_results(horse_id_list):
+def scrape_horse_results(horse_id_list:list):
         #horse_idをkeyにしてDataFrame型を格納
         # horse_id : int
         horse_results = {}
@@ -30,7 +30,7 @@ def scrape_horse_results(horse_id_list):
         horse_results_df = pd.concat([horse_results[key] for key in horse_results])
         return horse_results_df
 
-def scrape_peds(horse_id_list):
+def scrape_peds(horse_id_list:list):
         # horse_id : int
         
         peds_dict = {}
@@ -62,7 +62,7 @@ def scrape_peds(horse_id_list):
         peds_df.index =peds_df.index.astype(int)
         return peds_df
 
-def scrape_return_tables(race_id_list):
+def scrape_return_tables(race_id_list:list):
         # race_id : int
         """
         払い戻し表データをスクレイピングする関数
@@ -100,14 +100,13 @@ def scrape_return_tables(race_id_list):
             except Exception as e:
                 print(e)
                 break
-            except:
-                break
+
 
         #pd.DataFrame型にして一つのデータにまとめる
         return_tables_df = pd.concat([return_tables[key] for key in return_tables])
         return return_tables_df
 
-def scrape_race_results(race_id_list):
+def scrape_race_results(race_id_list:list):
         #race_idをkeyにしてDataFrame型を格納
         # race_id : int
         race_results = {}
@@ -141,7 +140,7 @@ def scrape_race_results(race_id_list):
                     if "年" in text:
                         df["date"] = [text] * len(df)
 
-                #馬ID、騎手IDをスクレイピング
+                #馬ID、騎手ID, owner_id, trainer_idをスクレイピング
                 horse_id_list = []
                 horse_a_list = soup.find("table", attrs={"summary": "レース結果"}).find_all(
                     "a",
@@ -157,12 +156,33 @@ def scrape_race_results(race_id_list):
                 for a in jockey_a_list:
                     jockey_id = re.findall(r"\d+", a["href"])
                     jockey_id_list.append(jockey_id[0])
+
+                ############
+                trainer_id_list = []
+                trainer_a_list = soup.find("table", attrs={"summary": "レース結果"}).find_all(
+                    "a", attrs={"href": re.compile("^/trainer")}
+                )
+                for a in trainer_a_list:
+                    trainer_id = re.findall(r"\d+", a["href"])
+                    trainer_id_list.append(trainer_id[0])
+                
+                ###########
+                owner_id_list = []
+                owner_a_list = soup.find("table", attrs={"summary": "レース結果"}).find_all(
+                    "a", attrs={"href": re.compile("^/owner")}
+                )
+                for a in owner_a_list:
+                    owner_id = re.findall(r"\d+", a["href"])
+                    owner_id_list.append(owner_id[0])
+                
                 df["horse_id"] = horse_id_list
                 df["jockey_id"] = jockey_id_list
-
+                df["trainer_id"] = trainer_id_list
+                df["owner_id"] = owner_id_list
+                
+                
                 #インデックスをrace_idにする
                 df.index = [race_id] * len(df)
-
                 race_results[race_id] = df
             #存在しないrace_idを飛ばす
             except IndexError:
@@ -175,5 +195,4 @@ def scrape_race_results(race_id_list):
 
         #pd.DataFrame型にして一つのデータにまとめる
         race_results_df = pd.concat([race_results[key] for key in race_results])
-
         return race_results_df
