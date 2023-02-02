@@ -40,8 +40,6 @@ class Simulator():
         race_dict = {}
 
         for race_id in race_id_list:
-            # pred_list,actual_rank_list,tansho_odds,fukusho_odds,umaren_odds,wide_odds,umatan_odds,sanrenpuku_odds,sanrentan_odds,wide_comb,odds_list = self.return_race_result(data_c,race_id,return_tables,is_long=is_long)
-            # row_list = [pred_list,actual_rank_list,tansho_odds,fukusho_odds,umaren_odds,wide_odds,umatan_odds,sanrenpuku_odds,sanrentan_odds,wide_comb,odds_list]
             row_list = self.return_race_result(data_c,race_id,return_tables,is_long=is_long)
             if row_list==None:    
                 continue
@@ -263,7 +261,7 @@ class TodaySimulator(Simulator):
             odds_list = []
             for ub in pred_df['馬番'].tolist():
                 odds_list.append(dc[dc['馬番']==ub]['単勝'].values[0])
-              
+            
             return_table  = return_tables.loc[str(race_id)]
             pred_df = pred_df.loc[race_id]
             pred_df = pred_df.sort_values('scores',ascending=False)
