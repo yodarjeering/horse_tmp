@@ -1,4 +1,4 @@
-
+import pandas as pd
 
 
 def split_data(df, test_size=0.2, label_type='bin'):
@@ -41,5 +41,17 @@ def make_data(data_,test_rate=0.8,is_rus=True):
     else:
         return x_train,y_train,x_test,y_test
 
+def update_data(old, new):
+    """
+    Parameters:
+    ----------
+    old : pandas.DataFrame
+        古いデータ
+    new : pandas.DataFrame
+        新しいデータ
+    """
+
+    filtered_old = old[~old.index.isin(new.index)]
+    return pd.concat([filtered_old, new])
 
 
