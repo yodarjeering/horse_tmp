@@ -52,7 +52,6 @@ class HorseResults:
         df['first_to_rank'] = df['first_corner'] - df['着順']
         df['first_to_final'] = df['first_corner'] - df['final_corner']
 
-
         #開催場所
         df['開催'] = df['開催'].str.extract(r'(\D+)')[0].map(place_dict).fillna('11')
         #race_type
@@ -69,6 +68,9 @@ class HorseResults:
             'first_to_rank', 'first_to_final','final_to_rank'
             ]
         
+        
+    def get_processed_df(self):
+        return self.processed_df
         
         
     def average(self, date, n_samples='all'):

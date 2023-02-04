@@ -36,23 +36,6 @@ class Peds:
         self.peds_re = peds
         self.processed_df = peds
 
-    
-    def categorize(self):
-        df = self.peds.copy()
-        self.le_peds_dict = {}
-        
-        for column in df.columns:          
-            self.le_peds_dict[column] = LabelEncoder()
-            df[column] = self.le_peds_dict[column].fit_transform(df[column].fillna('Na'))
 
-        print("finish categorize")
-        self.peds_cat = df.astype('category')
-        self.le_peds = self.le_peds_dict
-        self.processed_df = df.peds_cat
-        
-        
-#         血統データをベクトル化する関数
-#         将来的には実装したい
-    def vectorize(self):
-        pass
-    
+    def get_processed_df(self):
+        return self.processed_df    
