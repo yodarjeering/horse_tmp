@@ -52,7 +52,6 @@ class HorseResults:
         df['first_to_rank'] = df['first_corner'] - df['着順']
         df['first_to_final'] = df['first_corner'] - df['final_corner']
 
-
         #開催場所
         df['開催'] = df['開催'].str.extract(r'(\D+)')[0].map(place_dict).fillna('11')
         #race_type
@@ -70,8 +69,11 @@ class HorseResults:
             ]
         
         
+    def get_processed_df(self):
+        return self.processed_df
         
-    def average(self, date, n_samples='all'):
+        
+    def average(self, horse_id_list, date, n_samples='all'):
         target_df = self.horse_results.query('index in @horse_id_list')
         
         #過去何走分取り出すか指定
@@ -94,7 +96,7 @@ class HorseResults:
     def merge(self, results, date, n_samples='all'):
         df = results[results['date']==date]
         horse_id_list = df['horse_id']
-        self.average(horse_id_list, date, n_samples)
+        self.average(horse_id_list,date, n_samples)
         merged_df = df.merge(
             self.average_dict['non_category'],
             left_on='horse_id',

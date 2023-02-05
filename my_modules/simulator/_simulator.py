@@ -35,7 +35,7 @@ class Simulator():
         return pred
 
 #     odds以上の馬券しか買わない
-    def get_result_df(self, data_c, return_tables, is_long=True, odds=2.0, bet = 100):
+    def get_result_df(self, data_c, return_tables, is_long=True):
         race_id_list = sorted(list(set(data_c.index)))
         race_dict = {}
 
