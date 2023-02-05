@@ -872,6 +872,7 @@ class DataProcessor:
         df['ground_state'] = pd.Categorical(df['ground_state'], ground_states)
         df['性'] = pd.Categorical(df['性'], sexes)
         df = pd.get_dummies(df, columns=['weather', 'race_type', 'ground_state', '性'])
+        
         self.data_c = df    
     
 class ShutubaTable(DataProcessor):
@@ -1579,8 +1580,6 @@ class LearnLGBM():
         #馬の過去成績データ追加
         hr = HorseResults(horse_results)
         self.hr = hr
-        
-        
         r.merge_horse_results(hr)
         r.merge_peds(self.pe.peds_cat)
         # r.merge_peds(pe.peds_cat)
