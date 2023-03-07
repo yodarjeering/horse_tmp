@@ -8,7 +8,6 @@ from urllib.request import urlopen
 from selenium.webdriver.common.by import By
 from my_modules.constants import UrlPaths
 from ._prepare_chrome_driver import prepare_chrome_driver
-SLEEP_TIME = 5
 
 def scrape_kaisai_date(from_: str, to_: str):
     """
@@ -36,7 +35,7 @@ def scrape_kaisai_date(from_: str, to_: str):
             kaisai_date_list.append(re.findall('(?<=kaisai_date=)\d+', a['href'])[0])
     return kaisai_date_list
 
-def scrape_race_id_list(kaisai_date_list: list):
+def scrape_race_id_list(kaisai_date_list: list, waiting_time=10):
     """
     開催日をyyyymmddの文字列形式でリストで入れると、レースid一覧が返ってくる関数。
     ChromeDriverは要素を取得し終わらないうちに先に進んでしまうことがあるので、
@@ -45,7 +44,7 @@ def scrape_race_id_list(kaisai_date_list: list):
     race_id_list = []
     driver = prepare_chrome_driver()
     # 取得し終わらないうちに先に進んでしまうのを防ぐため、暗黙的な待機（デフォルト10秒）
-    driver.implicitly_wait(SLEEP_TIME)
+    driver.implicitly_wait(waiting_time)
     max_attempt = 2
     print('getting race_id_list')
     for kaisai_date in tqdm(kaisai_date_list):

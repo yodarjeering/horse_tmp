@@ -1,3 +1,4 @@
 from ._prepare_chrome_driver import prepare_chrome_driver
 from ._scrape_csv import scrape_horse_results,scrape_peds,scrape_race_results,scrape_return_tables
 from ._scrape_race_id_list import scrape_kaisai_date,scrape_race_id_list
+from ._scrape_shutuba_table import scrape_shutuba_table,scrape_horse_id_list
