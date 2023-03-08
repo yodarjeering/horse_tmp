@@ -1,7 +1,7 @@
 from numpy import True_
 import pandas as pd
 import time
-import tqdm
+from tqdm.notebook import tqdm as tqdm
 
 
 class Simulator():
@@ -39,7 +39,7 @@ class Simulator():
         race_id_list = sorted(list(set(data_c.index)))
         race_dict = {}
 
-        for race_id in race_id_list:
+        for race_id in tqdm(race_id_list):
             row_list = self.return_race_result(data_c,race_id,return_tables,is_long=is_long)
             if row_list==None:    
                 continue
