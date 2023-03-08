@@ -115,7 +115,7 @@ class MakePredictData(MakeTrainData):
 
         print("--finish dumminize--")
         processed_df.drop(['date'],axis=1,inplace=True)
-        self.processed_df = processed_df.fillna(0)
+        # self.processed_df = processed_df.fillna(pd.Categorical([0]))
 
 
             
