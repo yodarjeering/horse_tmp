@@ -28,7 +28,6 @@ class DataMerger():
             ## merge_all が　気に食わない
             ## DataMerger はマージのみをすべきである
             ## horse_results_processor でマージを行うのは, 汚い
-            ## 将来的には, 廃止予定
             merged_df = self.horse_results_processor.merge_all(merged_df, n_samples=n_samples)
         
         # 開催データをカテゴリ変数化する
