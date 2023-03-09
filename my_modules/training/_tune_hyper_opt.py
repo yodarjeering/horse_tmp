@@ -1,4 +1,4 @@
-from hyperopt import hp, tpe, Trials,STATUS_OK
+from hyperopt import hp, tpe,STATUS_OK
 from hyperopt.fmin import fmin
 import numpy as np
 import lightgbm as lgb
@@ -20,30 +20,31 @@ def optimize(trials, train_set, valid_set):
         'force_col_wise':True,
         
         #--------------探索範囲
-        # 'reg_alpha' : hp.loguniform('reg_alpha', np.log(1e-3), np.log(1e+1)),
+        'reg_alpha' : hp.loguniform('reg_alpha', np.log(1e-3), np.log(1e+1)),
         'learning_rate': hp.loguniform('learning_rate', np.log(1e-3), np.log(1e-1)),
-        # 'subsample' : hp.uniform('subsample', 0.5, 1.0),
+        'subsample' : hp.uniform('subsample', 0.5, 1.0),
         'colsample_bytree': hp.uniform('colsample_bytree', 0.01, 1.0),
-        # 'reg_lambda': hp.loguniform('reg_lambda', np.log(1e-2), np.log(1e+3)),
+        'reg_lambda': hp.loguniform('reg_lambda', np.log(1e-2), np.log(1e+3)),
         
         #------------intに直す必要がある
         'lambdarank_truncation_level': hp.quniform('lambdarank_truncation_level',1,20,2), # ラムダの計算, 20レコードまで計算する
-        # 'subsample_freq': hp.quniform('subsample_freq', 1, 20, 2),
-        # 'min_child_samples': hp.quniform('min_child_samples', 1, 50, 1),
-        'num_leaves': hp.quniform('num_leaves', 4, 100, 4),
+        'subsample_freq': hp.quniform('subsample_freq', 1, 20, 2),
+        'min_child_samples': hp.quniform('min_child_samples', 1, 50, 2),
+        # 'num_leaves': hp.quniform('num_leaves', 4, 100, 4), <= なぜかnum_leaves あると list index out エラー
     }
 
     max_evals = 25      #探索回数(25くらいで十分)
     
+    # 内部関数
     def score(params):
         print("Training start:")
         lgb_results={}  #履歴格納用
         
         #----------------- quniform 型は, int に直す必要あり
         params['lambdarank_truncation_level'] = int(params['lambdarank_truncation_level'])
-        # params['subsample_freq'] = int(params['subsample_freq'])
-        # params['min_child_samples'] = int(params['min_child_samples'])
-        params['num_leaves'] = int(params['num_leaves'])
+        params['subsample_freq'] = int(params['subsample_freq'])
+        params['min_child_samples'] = int(params['min_child_samples'])
+        # params['num_leaves'] = int(params['num_leaves'])
 
         lgb_clf = lgb.train(
             params,

@@ -1,34 +1,65 @@
 from itertools import combinations
 
+# 将来的にはrace type 別の的中率分布作りたい
+RACE_TYPE_LIST = [
+    'new_horse',
+    'not_win',
+    'won1',
+    'won2',
+    'won3',
+    'open',
+    'g1',
+    'g2',
+    'g3',
+    'obstacle'
+]
 
-def calc_(all_results,kaime='tansho',odds_alpha=2,bet=100,is_all=True,round_list=['01'],verbose=True,num_buy=3):
-    length = 0
-    tekichu = 0
-    profit = 0
-    bet = 100
-    cant_buy_cnt = 0
-    race_hit_dist = {'{}'.format(str(i).zfill(2)):0 for i in range(1,13)}
+
+def calc_(all_results,kaime='tansho',odds_alpha=2,bet=100,is_all=True,round_list=['01'],verbose=True,num_buy=3,race_type_list=['open']):
+
+    variable_dict = {
+        'length':0,
+        'tekichu':0,
+        'profit':0,
+        'cant_buy_cnt':0,
+        'bought_num':1
+    }
+
+    # race_round 別の的中数分布
+    race_hit_dist = {'{}'.format(str(i).zfill(2)):0 for i in range(1,13)}  
+    # race_class 別の的中数分布
+    race_hit_type_dist = {'{}'.format(rt):0 for rt in RACE_TYPE_LIST}
+    # box 買いの時は的中率, 回収率などの計算が他とは異なる
+    is_box = False
 
     if kaime=='tansho':
         calc_func = calc_tansho
     elif kaime=='fukusho':
         calc_func = calc_fukusho
     elif kaime=='wide':
-        calc_func = calc_wide
+        calc_func = calc_wide_box
+        num_buy = 2
     elif kaime=='umatan':
         calc_func = calc_umatan
     elif kaime=='umaren':
-        calc_func = calc_umaren
+        calc_func = calc_umaren_box
+        num_buy = 2
     elif kaime=='sanrentan':
         calc_func = calc_sanrentan
     elif kaime=='sanrenpuku':
-        calc_func = calc_sanrenpuku
+        calc_func = calc_sanrenpuku_box
+        num_buy = 3
     elif kaime=='wide_box':
         calc_func = calc_wide_box
+        is_box = True
     elif kaime=='umaren_box':
         calc_func = calc_umaren_box
+        is_box = True
     elif kaime=='sanrenpuku_box':
         calc_func = calc_sanrenpuku_box
+        is_box = True
+    elif kaime=='tansho_proper':
+        calc_func = calc_tansho_proper
     else:
         print("No such kaime")
         return 
@@ -37,48 +68,95 @@ def calc_(all_results,kaime='tansho',odds_alpha=2,bet=100,is_all=True,round_list
     for race_id in all_results.index:
         ar = all_results.loc[race_id]
         result_dict = calc_func(
-            ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,
+            ar,
+            race_id,
+            variable_dict,
+            race_hit_dist,
+            race_hit_type_dist,
             odds_alpha=odds_alpha,
             bet=bet,
             is_all=is_all,
             round_list=round_list,
-            num_buy=3
+            num_buy=num_buy
             )
-        length = result_dict['length']
-        profit = result_dict['profit']
-        tekichu = result_dict['tekichu']
-        cant_buy_cnt = result_dict['cant_buy_cnt']
+        variable_dict['length'] = result_dict['length']
+        variable_dict['profit'] = result_dict['profit']
+        variable_dict['tekichu'] = result_dict['tekichu']
+        variable_dict['cant_buy_cnt'] = result_dict['cant_buy_cnt']
+
+        if is_box:
+            variable_dict['bought_num'] = result_dict['bought_num']
+
         race_hit_dist = result_dict['race_hit_dist']
+        race_hit_type_dist = result_dict['race_hit_type_dist']
 
-    # -----------------------------------
-    # 回収率 = (収益)/(掛金)
-    #        = profit/(bet*length)
-    # 経費はすでに計算されているので, 収益率の方が正しい
-    # -----------------------------------
 
-    recovery_rate = (profit/(bet*length))*100
+    length = variable_dict['length']
+    profit = variable_dict['profit'] 
+    tekichu = variable_dict['tekichu'] 
+    cant_buy_cnt = variable_dict['cant_buy_cnt'] 
+    race_num = length
+    recovery_rate = (profit/(bet*race_num)+1)*100
+    accuracy_ = tekichu/race_num
+    bought_num = variable_dict['bought_num']
+    bought_num -= 1
+
+    if is_box:
+        filtered_race_num = bought_num
+    else:
+        filtered_race_num = race_num-cant_buy_cnt
+    
+    if filtered_race_num!=0:
+        filtered_accuracy_ = tekichu/filtered_race_num
+        if is_box:
+            mean_profit = profit/bought_num
+        else:
+            mean_profit = profit/filtered_race_num
+    # 賭ける対象のレースがすべてodds_alphaより小さかった場合
+    else:
+        filtered_accuracy_ = -1
+        mean_profit = -1
+    
     if verbose:
-        print('的中率             {0}'.format(tekichu/length))
-        print("odds filter 的中率 {0}".format(tekichu/(length-cant_buy_cnt)))
-        print("収益               {0} 円".format(profit))
-        print("回収率             {0}".format(recovery_rate))
-        print("レース数           {0}".format(length))
-        print("賭けたレース数     {0}".format(length-cant_buy_cnt))
+        
+        print("収益               : {:>15.2f} 円".format(profit))
+        print("平均収益           : {:>15.2f} 円".format(mean_profit))
+        print("回収率             : {:>15.2f} %".format(recovery_rate))
+        print('的中率             : {:>15.2f} %'.format(accuracy_*100))
+        print("odds filter 的中率 : {:>15.2f} %".format(filtered_accuracy_*100))
+        if is_box:
+            print("賭けた点数の回収率 : {:>15.2f} %".format((profit/(bet*bought_num)+1)*100))
+            print("賭けた点数の的中率 : {:>15.2f} %".format((tekichu/bought_num)*100))
+        print("レース数           : {:>15}".format(race_num))
+        print("賭けた点数         : {:>15}".format(bought_num))
         print('race dist',race_hit_dist)
+        print("race type dist",race_hit_type_dist)
 
-    accuracy_ = tekichu/length
+    # １レースあたりの平均収益とかあるといいかも
     detail_dict = {
         'accuracy_':accuracy_,
+        'filtered_accuracy_':filtered_accuracy_,
+        'filtered_race_num':filtered_race_num,
+        'race_num':race_num,
         'profit':profit,
+        'mean_profit':mean_profit,
         'recovery_rate':recovery_rate,
-        'race_hit_dist':race_hit_dist
+        'race_hit_dist':race_hit_dist,
+        'race_hit_type_dist':race_hit_type_dist,
+        'bought_num':bought_num
     }
 
     return detail_dict
 
-def calc_tansho(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,odds_alpha=2,bet=100,is_all=True,round_list=['01'],num_buy=3):
+def calc_tansho(ar,race_id,variable_dict,race_hit_dist,race_hit_type_dist,odds_alpha=2,bet=100,is_all=True,round_list=['01'],num_buy=3):
+    
+    length = variable_dict['length']
+    profit = variable_dict['profit'] 
+    tekichu = variable_dict['tekichu'] 
+    cant_buy_cnt = variable_dict['cant_buy_cnt'] 
+    # race_class = ar['race_class']
 
-    if is_all or str(race_id)[-2:] in round_list:
+    if is_all or (str(race_id)[-2:] in round_list):# or (race_class in round_list):
         length += 1
         is_buy = True
         pred_list = ar['pred_list']
@@ -97,6 +175,7 @@ def calc_tansho(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,odds
             tekichu+=1
             profit += bet*tansho_odds
             race_hit_dist[str(race_id)[-2:]] += 1
+            # race_hit_type_dist[race_class] += 1
 
     return {
         'length':length,
@@ -104,15 +183,18 @@ def calc_tansho(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,odds
         'tekichu':tekichu,
         'cant_buy_cnt':cant_buy_cnt,
         'race_hit_dist':race_hit_dist,
+        'race_hit_type_dist':race_hit_type_dist
         }
 
 
+def calc_fukusho(ar,race_id,variable_dict,race_hit_dist,race_hit_type_dist,odds_alpha=2,bet=100,is_all=True,round_list=['01'],num_buy=3):
+    length = variable_dict['length']
+    profit = variable_dict['profit'] 
+    tekichu = variable_dict['tekichu'] 
+    cant_buy_cnt = variable_dict['cant_buy_cnt'] 
+    # race_class = ar['race_class']
 
-
-    
-def calc_fukusho(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,odds_alpha=2,bet=100,is_all=True,round_list=['01'],num_buy=3):
-    
-    if is_all or str(race_id)[-2:] in round_list:
+    if is_all or (str(race_id)[-2:] in round_list):# or (race_class in round_list):
         length += 1
         is_buy = True
         pred_list = ar['pred_list']
@@ -137,6 +219,7 @@ def calc_fukusho(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,odd
             tekichu+=1
             profit += bet*fukusho_odds[tekichu_index]
             race_hit_dist[str(race_id)[-2:]] += 1
+            # race_hit_type_dist[race_class] += 1
 
     return {
         'length':length,
@@ -144,75 +227,18 @@ def calc_fukusho(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,odd
         'tekichu':tekichu,
         'cant_buy_cnt':cant_buy_cnt,
         'race_hit_dist':race_hit_dist,
+        'race_hit_type_dist':race_hit_type_dist
         }
 
-    
-def calc_wide(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,odds_alpha=2,bet=100,is_all=True,round_list=['01'],num_buy=3):
+ 
+def calc_umatan(ar,race_id,variable_dict,race_hit_dist,race_hit_type_dist,odds_alpha=2,bet=100,is_all=True,round_list=['01'],num_buy=3):
+    length = variable_dict['length']
+    profit = variable_dict['profit'] 
+    tekichu = variable_dict['tekichu'] 
+    cant_buy_cnt = variable_dict['cant_buy_cnt'] 
+    # race_class = ar['race_class']
 
-
-    if is_all or str(race_id)[-2:] in round_list:
-        length+=1
-        is_buy = True
-        pred_list = ar['pred_list']
-        wide_comb = ar['wide_comb']
-        wide_odds = ar['wide_odds']
-        pred_odds = ar['odds_list'][0]
-        
-        if pred_odds>=odds_alpha:
-            profit -= bet
-        else:
-            is_buy=False
-            cant_buy_cnt += 1
-            
-        if sorted(pred_list[0:2]) in wide_comb and is_buy:
-            tekichu_index = wide_comb.index(sorted(pred_list[0:2]))
-            tekichu+=1
-            profit += bet*wide_odds[tekichu_index]
-            race_hit_dist[str(race_id)[-2:]] += 1
-
-    return {
-        'length':length,
-        'profit':profit,
-        'tekichu':tekichu,
-        'cant_buy_cnt':cant_buy_cnt,
-        'race_hit_dist':race_hit_dist,
-        }
-
-
-def calc_umaren(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,odds_alpha=2,bet=100,is_all=True,round_list=['01'],num_buy=3):
-
-    if is_all or str(race_id)[-2:] in round_list:
-        length+=1
-        is_buy = True
-        pred_list = sorted(ar['pred_list'][0:2])
-        actual_list = sorted(ar['actual_rank_list'][0:2])
-        umaren_odds = ar['umaren_odds']
-        pred_odds = ar['odds_list'][0]
-        
-        if pred_odds>=odds_alpha:
-            profit -= bet
-        else:
-            is_buy=False
-            cant_buy_cnt += 1
-
-        if  pred_list == actual_list and is_buy:
-            tekichu+=1
-            profit += bet*umaren_odds
-            race_hit_dist[str(race_id)[-2:]] += 1
-        
-    return {
-        'length':length,
-        'profit':profit,
-        'tekichu':tekichu,
-        'cant_buy_cnt':cant_buy_cnt,
-        'race_hit_dist':race_hit_dist,
-        }
-
-
-
-def calc_umatan(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,odds_alpha=2,bet=100,is_all=True,round_list=['01'],num_buy=3):
-
-    if is_all or str(race_id)[-2:] in round_list:
+    if is_all or (str(race_id)[-2:] in round_list):# or (race_class in round_list):
         length+=1
         is_buy = True
         pred_list = ar['pred_list'][0:2]
@@ -231,49 +257,27 @@ def calc_umatan(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,odds
             tekichu+=1
             profit += bet*umatan_odds
             race_hit_dist[str(race_id)[-2:]] += 1
-    
+            # race_hit_type_dist[race_class] += 1
+
     return {
         'length':length,
         'profit':profit,
         'tekichu':tekichu,
         'cant_buy_cnt':cant_buy_cnt,
         'race_hit_dist':race_hit_dist,
-        }
-
-def calc_sanrenpuku(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,odds_alpha=2,bet=100,is_all=True,round_list=['01'],num_buy=3):
-
-    if is_all or str(race_id)[-2:] in round_list:
-        length+=1
-        is_buy = True
-        pred_list = sorted(ar['pred_list'][0:3])
-        actual_list = sorted(ar['actual_rank_list'][0:3])
-        sanrenpuku_odds = ar['sanrenpuku_odds']
-        pred_odds = ar['odds_list'][0]
-        
-        if pred_odds>=odds_alpha:
-            profit -= bet
-        else:
-            is_buy=False
-            cant_buy_cnt += 1
-
-        if pred_list == actual_list and is_buy:
-            tekichu+=1
-            profit += bet*sanrenpuku_odds
-            race_hit_dist[str(race_id)[-2:]] += 1
-    
-    return {
-        'length':length,
-        'profit':profit,
-        'tekichu':tekichu,
-        'cant_buy_cnt':cant_buy_cnt,
-        'race_hit_dist':race_hit_dist,
+        'race_hit_type_dist':race_hit_type_dist
         }
 
 
 
-def calc_sanrentan(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,odds_alpha=2,bet=100,is_all=True,round_list=['01'],num_buy=3):
+def calc_sanrentan(ar,race_id,variable_dict,race_hit_dist,race_hit_type_dist,odds_alpha=2,bet=100,is_all=True,round_list=['01'],num_buy=3):
+    length = variable_dict['length']
+    profit = variable_dict['profit'] 
+    tekichu = variable_dict['tekichu'] 
+    cant_buy_cnt = variable_dict['cant_buy_cnt'] 
+    # race_class = ar['race_class']
 
-    if is_all or str(race_id)[-2:] in round_list:
+    if is_all or (str(race_id)[-2:] in round_list):#or (race_class in round_list):
         length+=1
         is_buy = True
         pred_list = ar['pred_list'][0:3]
@@ -291,6 +295,7 @@ def calc_sanrentan(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,o
             tekichu+=1
             profit += bet*sanrentan_odds
             race_hit_dist[str(race_id)[-2:]] += 1
+            # race_hit_type_dist[race_class] += 1
 
     return {
         'length':length,
@@ -298,14 +303,23 @@ def calc_sanrentan(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,o
         'tekichu':tekichu,
         'cant_buy_cnt':cant_buy_cnt,
         'race_hit_dist':race_hit_dist,
+        'race_hit_type_dist':race_hit_type_dist
         }
+
 
 ##  num_buy 引数 あとで全ての関数に適用
 ## こちらの関数の方が汎用性高いので, 将来的に calc_~box を calc_~と置き換える
-def calc_sanrenpuku_box(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,odds_alpha=2,bet=100,is_all=True,round_list=['01'],num_buy=6):
 
-    bought_num = 0
-    if is_all or str(race_id)[-2:] in round_list:
+def calc_sanrenpuku_box(ar,race_id,variable_dict,race_hit_dist,race_hit_type_dist,odds_alpha=2,bet=100,is_all=True,round_list=['01'],num_buy=6):
+    length = variable_dict['length']
+    profit = variable_dict['profit'] 
+    tekichu = variable_dict['tekichu'] 
+    cant_buy_cnt = variable_dict['cant_buy_cnt'] 
+    bought_num = variable_dict['bought_num']
+    # race_class = ar['race_class']
+    
+
+    if is_all or (str(race_id)[-2:] in round_list):# or (race_class in round_list):
         length+=1
         is_buy = True
         actual_list = sorted(ar['actual_rank_list'][0:3])
@@ -334,7 +348,7 @@ def calc_sanrenpuku_box(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_
                     is_buy=False
                     cant_buy_cnt += 1
                     low_odds_num += 1
-                    break
+                    break # <= 途中でブレークっておかしくね？
 
             if is_buy:
                 profit -= bet
@@ -343,9 +357,10 @@ def calc_sanrenpuku_box(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_
                 tekichu+=1
                 profit += bet*sanrenpuku_odds
                 race_hit_dist[str(race_id)[-2:]] += 1
+                # race_hit_type_dist[race_class] += 1
             
         # odds_alpha 以上を含む最終的な, 購入点数
-        bought_num = len(box_list) - low_odds_num
+        bought_num += (len(box_list) - low_odds_num)
     
     return {
         'length':length,
@@ -353,14 +368,20 @@ def calc_sanrenpuku_box(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_
         'tekichu':tekichu,
         'cant_buy_cnt':cant_buy_cnt,
         'race_hit_dist':race_hit_dist,
+        'race_hit_type_dist':race_hit_type_dist,
         'bought_num':bought_num
         }
 
-def calc_umaren_box(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,odds_alpha=2,bet=100,is_all=True,round_list=['01'],num_buy=3):
+def calc_umaren_box(ar,race_id,variable_dict,race_hit_dist,race_hit_type_dist,odds_alpha=2,bet=100,is_all=True,round_list=['01'],num_buy=3):
+    
+    length = variable_dict['length']
+    profit = variable_dict['profit'] 
+    tekichu = variable_dict['tekichu'] 
+    cant_buy_cnt = variable_dict['cant_buy_cnt'] 
+    bought_num = variable_dict['bought_num']
+    # race_class = ar['race_class']
 
-    bought_num = 0
-
-    if is_all or str(race_id)[-2:] in round_list:
+    if is_all or (str(race_id)[-2:] in round_list):# or (race_class in round_list):
         length+=1
         is_buy = True
         actual_list = sorted(ar['actual_rank_list'][0:2])
@@ -396,9 +417,10 @@ def calc_umaren_box(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,
                 tekichu+=1
                 profit += bet*umaren_odds
                 race_hit_dist[str(race_id)[-2:]] += 1
+                # race_hit_type_dist[race_class] += 1
         
     # odds_alpha 以上を含む最終的な, 購入点数
-        bought_num = len(box_list) - low_odds_num
+        bought_num += (len(box_list) - low_odds_num)
         
     # calc_ 関数で計算される的中率は, 全レース数の的中率
     # 別途, 賭けたレース数のうちの的中率も計算する必要あり -> tekichu/bought_num で計算できる
@@ -408,13 +430,20 @@ def calc_umaren_box(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,
         'tekichu':tekichu,
         'cant_buy_cnt':cant_buy_cnt,
         'race_hit_dist':race_hit_dist,
+        'race_hit_type_dist':race_hit_type_dist,
         'bought_num':bought_num
         }
 
-def calc_wide_box(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,odds_alpha=2,bet=100,is_all=True,round_list=['01'],num_buy=3):
+def calc_wide_box(ar,race_id,variable_dict,race_hit_dist,race_hit_type_dist,odds_alpha=2,bet=100,is_all=True,round_list=['01'],num_buy=3):
 
-    bought_num = 0
-    if is_all or str(race_id)[-2:] in round_list:
+    length = variable_dict['length']
+    profit = variable_dict['profit'] 
+    tekichu = variable_dict['tekichu'] 
+    cant_buy_cnt = variable_dict['cant_buy_cnt'] 
+    bought_num = variable_dict['bought_num']
+    # race_class = ar['race_class']
+
+    if is_all or (str(race_id)[-2:] in round_list):# or (race_class in round_list):
         length+=1
         is_buy = True
         wide_comb = ar['wide_comb']
@@ -424,6 +453,7 @@ def calc_wide_box(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,od
         # len(box_list) = num_buyC2 通り
         # num_buy : 予測上位 num_buy 番目まで買うか
         pred_list = sorted(ar['pred_list'][0:num_buy])
+        # box_list : ex)  [[2, 5, 11], [2, 5, 12], [2, 11, 12], [5, 11, 12]]
         box_list = list(map(list,combinations(pred_list,2)))
         low_odds_num = 0
 
@@ -450,9 +480,10 @@ def calc_wide_box(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,od
                 tekichu_index = wide_comb.index(comb)
                 profit += bet*wide_odds[tekichu_index]
                 race_hit_dist[str(race_id)[-2:]] += 1
+                # race_hit_type_dist[race_class] += 1
         
     # odds_alpha 以上を含む最終的な, 購入点数
-        bought_num = len(box_list) - low_odds_num
+        bought_num += (len(box_list) - low_odds_num)
         
     return {
         'length':length,
@@ -460,11 +491,52 @@ def calc_wide_box(ar,race_id,length,profit,tekichu,race_hit_dist,cant_buy_cnt,od
         'tekichu':tekichu,
         'cant_buy_cnt':cant_buy_cnt,
         'race_hit_dist':race_hit_dist,
+        'race_hit_type_dist':race_hit_type_dist,
         'bought_num':bought_num
         }
 
-def calc_tansho_proper():
-    pass
+# odds が低い馬には掛金大きく, odds が高い馬は掛金小さく
+# bet = X / odds
+def calc_tansho_proper(ar,race_id,variable_dict,race_hit_dist,race_hit_type_dist,odds_alpha=2,bet=100,is_all=True,round_list=['01'],num_buy=3):
+    
+    # 1万円 獲得できるように, 掛金を調整する
+    Expected_price = 10000
+    length = variable_dict['length']
+    profit = variable_dict['profit'] 
+    tekichu = variable_dict['tekichu'] 
+    cant_buy_cnt = variable_dict['cant_buy_cnt'] 
+    # race_class = ar['race_class']
+
+    if is_all or (str(race_id)[-2:] in round_list):# or (race_class in round_list):
+        length += 1
+        is_buy = True
+        pred_list = ar['pred_list']
+        actual_list = ar['actual_rank_list']
+        tansho_odds = ar['tansho_odds']
+        pred_odds = ar['odds_list'][0]
+
+        # 払い戻し金額が, 1万円で一定となるように掛金を調整
+        bet = Expected_price/pred_odds
+        
+        if bet<100:
+            bet = 100
+
+        profit -= bet
+            
+        if pred_list[0]==actual_list[0] and is_buy:
+            tekichu+=1
+            profit += bet*tansho_odds
+            race_hit_dist[str(race_id)[-2:]] += 1
+            # race_hit_type_dist[race_class] += 1
+
+    return {
+        'length':length,
+        'profit':profit,
+        'tekichu':tekichu,
+        'cant_buy_cnt':cant_buy_cnt,
+        'race_hit_dist':race_hit_dist,
+        'race_hit_type_dist':race_hit_type_dist
+        }
 
 def calc_sanrentan_nagashi():
     pass

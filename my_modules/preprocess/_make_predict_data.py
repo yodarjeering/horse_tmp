@@ -7,7 +7,7 @@ class MakePredictData(MakeTrainData):
     
     def __init__(self,data_merger,COLUMNS):
         self.data_merger = data_merger
-        self.processed_df = self.data_merger.get_merged_df()
+        self.processed_df = self.data_merger.get_merged_df().copy()
         # 当日データでは, dumminaize のカラムが足りなくなってしまうので, 訓練データのカラムを追加
         self.COLUMNS = COLUMNS
 
@@ -29,16 +29,18 @@ class MakePredictData(MakeTrainData):
     #  この辺, いずれリファクタリングする
     #  継承の旨みが全く生かせてない
     def categorize_peds(self):
-        merged_df = self.get_processed_df()
+        merged_df = self.get_processed_df().copy()
         peds_processor = self.data_merger.peds_processor
         peds_processed = peds_processor.processed_df
         le_peds_dict = self.le_peds_dict
-
+        
+        # カテゴリ型に直す
         for column in peds_processed.columns:
             target_col = merged_df[column].astype(str).fillna('Na')
             # le_peds_dict[column] = LabelEncoder().fit(target_col)
             merged_df[column] = le_peds_dict[column].transform(target_col)
-        
+            merged_df[column] = pd.Series(merged_df[column],dtype='category')
+
         print("--finish categorize peds--")
         self.le_peds_dict = le_peds_dict
         self.processed_df = merged_df
@@ -48,7 +50,7 @@ class MakePredictData(MakeTrainData):
     def categorize_id(self):
 
         # horse_id, jockey_id, trainer_id, owner_id カテゴリ化
-        merged_df = self.get_processed_df()
+        merged_df = self.get_processed_df().copy()
 
         # set_label_encoder 呼び出し後を仮定
         le_horse = self.le_horse
@@ -95,7 +97,7 @@ class MakePredictData(MakeTrainData):
         #そのほかのカテゴリ変数をpandasのcategory型に変換してからダミー変数化
         #列を一定にするため
         COLUMNS = self.COLUMNS
-        merged_df = self.get_processed_df()
+        merged_df = self.get_processed_df().copy()
         weathers = merged_df['weather'].unique()
         race_types = merged_df['race_type'].unique()
         ground_states = merged_df['ground_state'].unique()

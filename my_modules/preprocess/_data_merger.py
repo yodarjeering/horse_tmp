@@ -15,9 +15,9 @@ class DataMerger():
     
     
     def merge(self, n_samples_list = [5, 9, 'all']):
-        race_results_processed = self.race_results_processor.get_processed_df()
+        race_results_processed = self.race_results_processor.get_processed_df().copy()
         # horse_results_processed = self.horse_results_processor.get_processed_df()
-        peds_processed = self.peds_processor.get_processed_df()
+        peds_processed = self.peds_processor.get_processed_df().copy()
         
         # race_results と　horse_results をマージ
         merged_df = race_results_processed.copy()
