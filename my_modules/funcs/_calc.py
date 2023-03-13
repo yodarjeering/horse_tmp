@@ -18,11 +18,11 @@ RACE_TYPE_LIST = [
 def calc_(all_results,kaime='tansho',odds_alpha=2,bet=100,is_all=True,round_list=['01'],verbose=True,num_buy=3,race_type_list=['open']):
 
     variable_dict = {
-        'length':0,
-        'tekichu':0,
-        'profit':0,
-        'cant_buy_cnt':0,
-        'bought_num':1
+        'length':0,         # race の長さ
+        'tekichu':0,        # 的中した数
+        'profit':0,         # 利益 (betした経費は計算済み)
+        'cant_buy_cnt':0,   # odds_filter 以下のオッズで, 買えなかったレースの数
+        'bought_num':1      # 買い点数, box買い以外は, 1, 
     }
 
     # race_round 別の的中数分布
@@ -68,16 +68,16 @@ def calc_(all_results,kaime='tansho',odds_alpha=2,bet=100,is_all=True,round_list
     for race_id in all_results.index:
         ar = all_results.loc[race_id]
         result_dict = calc_func(
-            ar,
-            race_id,
-            variable_dict,
-            race_hit_dist,
-            race_hit_type_dist,
-            odds_alpha=odds_alpha,
-            bet=bet,
-            is_all=is_all,
+            ar,                     
+            race_id,        
+            variable_dict,          # 計算する変数を辞書型で管理
+            race_hit_dist,          # race_round ごとの的中率分布の計算用
+            race_hit_type_dist,     # race_type 別の的中率分布計算用 *未実装
+            odds_alpha=odds_alpha,  # 購入する単勝オッズの閾値, この単勝オッズより下なら買わない, どの買目でも単勝オッズで判断する点に注意
+            bet=bet,                # 掛金
+            is_all=is_all,          
             round_list=round_list,
-            num_buy=num_buy
+            num_buy=num_buy         # box 買いの時, 何点購入するか
             )
         variable_dict['length'] = result_dict['length']
         variable_dict['profit'] = result_dict['profit']
@@ -230,7 +230,7 @@ def calc_fukusho(ar,race_id,variable_dict,race_hit_dist,race_hit_type_dist,odds_
         'race_hit_type_dist':race_hit_type_dist
         }
 
- 
+
 def calc_umatan(ar,race_id,variable_dict,race_hit_dist,race_hit_type_dist,odds_alpha=2,bet=100,is_all=True,round_list=['01'],num_buy=3):
     length = variable_dict['length']
     profit = variable_dict['profit'] 

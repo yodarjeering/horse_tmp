@@ -40,7 +40,6 @@ class ShutubaData():
         df['trainer_id'] = df['trainer_id'].astype(int)
         df['owner_id'] = df['owner_id'].astype(int)
 
-        self.data_p = df
         self.processed_df = df
     
 
