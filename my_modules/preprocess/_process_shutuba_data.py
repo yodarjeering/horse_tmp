@@ -3,13 +3,13 @@ from sklearn.preprocessing import LabelEncoder
 import numpy as np
 
 class ShutubaData():
-    def __init__(self, results:pd.DataFrame):
-        self.data = results
-        self.le_peds = None
+    def __init__(self, shutuba_data, race_results):
+        self.shutuba_data = shutuba_data
+        self.race_results = race_results
             
     #前処理    
     def preprocessing(self):
-        df = self.data.copy()
+        df = self.shutuba_data.copy()
         # 性齢を性と年齢に分ける
         df["性"] = df["性齢"].map(lambda x: str(x)[0])
         df["年齢"] = df["性齢"].map(lambda x: str(x)[1:]).astype(int)
@@ -27,9 +27,11 @@ class ShutubaData():
         df['開催'] = df.index.map(lambda x:str(x)[4:6])
         df['n_horse'] = df.index.map(lambda x: len(df.loc[x]))  
         
-        # 一時的にデータ形式揃えるために, ダミーのowner_id用意した 
-        df['owner_id'] = self.add_owner_id_dummy()    
-        
+        # shutuba_data にowner_id がないため, race_results テーブルからowner_id 引っ張ってくる
+        # df['owner_id'] = self.add_owner_id()    
+        owner_id_list = self.add_owner_id()
+        df['owner_id'] = owner_id_list
+
         df['枠番'] = df['枠番'].astype(int)
         df['馬番'] = df['馬番'].astype(int)
         df['斤量'] = df['斤量'].astype(float)
@@ -42,9 +44,18 @@ class ShutubaData():
         self.processed_df = df
     
 
-    def add_owner_id_dummy(self):
-        df = self.data.copy()
-        return df['trainer_id']
+    def add_owner_id(self):
+        shutuba_data = self.shutuba_data.copy()
+        race_results = self.race_results.copy()
+        shutuba_data['horse_id'] = shutuba_data['horse_id'].astype(int)
+        horse_id_list = shutuba_data['horse_id'].tolist() # <= int に直す必要あり
+        owner_id_list = []
+        
+        for horse_id in horse_id_list:
+            owner_id = race_results[race_results['horse_id']==horse_id]['owner_id'].iloc[0]
+            owner_id_list.append(owner_id)
+
+        return owner_id_list
 
     def get_processed_df(self):
         return self.processed_df
