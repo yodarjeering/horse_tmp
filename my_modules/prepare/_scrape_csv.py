@@ -1,4 +1,4 @@
-from tqdm.notebook import tqdm as tqdm
+from tqdm.auto import tqdm
 import pandas as pd
 import time
 import urllib.request
@@ -184,8 +184,10 @@ def scrape_race_results(race_id_list:list):
                 #インデックスをrace_idにする
                 df.index = [race_id] * len(df)
                 race_results[race_id] = df
+
             #存在しないrace_idを飛ばす
             except IndexError:
+                print("IndexError")
                 continue
             #wifiの接続が切れた時などでも途中までのデータを返せるようにする
             except Exception as e:

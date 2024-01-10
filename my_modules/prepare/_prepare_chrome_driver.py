@@ -9,6 +9,6 @@ def prepare_chrome_driver():
     options.add_argument('--headless')
     options.add_argument("--no-sandbox")
     # selenium4 を使用せよ
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver = webdriver.Chrome( options=options)
     driver.set_window_size(50, 50)
     return driver

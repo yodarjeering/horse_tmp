@@ -91,18 +91,18 @@ def calc_(all_results,kaime='tansho',odds_alpha=2,bet=100,is_all=True,round_list
         race_hit_type_dist = result_dict['race_hit_type_dist']
 
 
-    length = variable_dict['length']
-    profit = variable_dict['profit'] 
-    tekichu = variable_dict['tekichu'] 
-    cant_buy_cnt = variable_dict['cant_buy_cnt'] 
-    race_num = length
-    recovery_rate = (profit/(bet*race_num)+1)*100
-    accuracy_ = tekichu/race_num
-    bought_num = variable_dict['bought_num']
-    bought_num -= 1
+    length = variable_dict['length']                # raceの長さ
+    profit = variable_dict['profit']                # 利益
+    tekichu = variable_dict['tekichu']              # 的中レース数
+    cant_buy_cnt = variable_dict['cant_buy_cnt']    # 指定したオッズ以下で買わなかったレースの数
+    race_num = length                               
+    recovery_rate = (profit/(bet*race_num)+1)*100   # 回収率 (%)
+    accuracy_ = (tekichu/race_num)*100              # 的中率
+    bought_num = variable_dict['bought_num']        # 買った点数, box買い以外は 1
 
     if is_box:
-        filtered_race_num = bought_num
+        filtered_race_num = bought_num-1
+
     else:
         filtered_race_num = race_num-cant_buy_cnt
     
@@ -122,7 +122,7 @@ def calc_(all_results,kaime='tansho',odds_alpha=2,bet=100,is_all=True,round_list
         print("収益               : {:>15.2f} 円".format(profit))
         print("平均収益           : {:>15.2f} 円".format(mean_profit))
         print("回収率             : {:>15.2f} %".format(recovery_rate))
-        print('的中率             : {:>15.2f} %'.format(accuracy_*100))
+        print('的中率             : {:>15.2f} %'.format(accuracy_))
         print("odds filter 的中率 : {:>15.2f} %".format(filtered_accuracy_*100))
         if is_box:
             print("賭けた点数の回収率 : {:>15.2f} %".format((profit/(bet*bought_num)+1)*100))
